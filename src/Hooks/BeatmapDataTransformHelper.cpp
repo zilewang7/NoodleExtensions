@@ -171,7 +171,7 @@ void LoadNoodleEvent(TracksAD::BeatmapAssociatedData& beatmapAD, CustomJSONData:
     std::string_view trackTarget(
         NEJSON::ReadOptionalString(eventData, v2 ? NoodleExtensions::Constants::V2_TARGET.data() : NoodleExtensions::Constants::TARGET.data()).value_or("Root"));
     TrackW track = beatmapAD.getTrack(trackName);
-    NELogger::Logger.debug("Assigning player to track {} at {}, with target {}", trackName.data(), fmt::ptr(track), trackTarget.data());
+    NELogger::Logger.debug("Assigning player to track {}, with target {}", trackName.data(), trackTarget.data());
     eventAD.playerTrackEventData.emplace(track, trackTarget);
 
     NECaches::hasPlayerTransfrom = true;

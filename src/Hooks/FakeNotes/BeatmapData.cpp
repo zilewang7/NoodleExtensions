@@ -158,8 +158,9 @@ MAKE_HOOK_MATCH(V3_BeatmapDataLoader_GetBeatmapDataFromSaveData,
   });
   PARSE_ARRAY(fakeObstacles, Parser::DeserializeObstacle, [&](v3::CustomBeatmapSaveData_ObstacleData* data) {
     float beat = BeatToTime(data->b);
+    auto rotation = 0;
     auto* obstacle =
-        CustomObstacleData::New_ctor(beat, data->line, data->b + data->duration, beat, GetNoteLineLayer(data->get_layer()),
+        CustomObstacleData::New_ctor(beat, data->b, data->b + data->duration, rotation, data->get_line(), GetNoteLineLayer(data->get_layer()),
                                      BeatToTime(data->b + data->duration) - beat, data->width, data->height);
 
     obstacle->customData = CustomJSONData::JSONWrapperOrNull(data->customData);

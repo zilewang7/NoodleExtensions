@@ -10,13 +10,10 @@ using namespace NEVector;
 
 namespace {
 
-PointDefinition* TryGetPointData(BeatmapAssociatedData& beatmapAD, rapidjson::Value const& animation,
-                                 std::string_view name) {
-  PointDefinition* anonPointDef = nullptr;
-  PointDefinition* pointDef = Animation::TryGetPointData(beatmapAD, anonPointDef, animation, name);
-  if (anonPointDef) {
-    beatmapAD.anonPointDefinitions.emplace(anonPointDef);
-  }
+PointDefinitionW TryGetPointData(BeatmapAssociatedData& beatmapAD, rapidjson::Value const& animation,
+                                 std::string_view name, Tracks::ffi::WrapBaseValueType type) {
+  beatmapAD.getPointDefinition(animation, name, type);
+  PointDefinitionW pointDef = beatmapAD.getPointDefinition(animation, name, type);
   return pointDef;
 }
 
@@ -26,25 +23,25 @@ AnimationObjectData::AnimationObjectData(BeatmapAssociatedData& beatmapAD, rapid
     : parsed(true) {
   position =
       TryGetPointData(beatmapAD, animation,
-                      v2 ? NoodleExtensions::Constants::V2_POSITION : NoodleExtensions::Constants::OFFSET_POSITION);
+                      v2 ? NoodleExtensions::Constants::V2_POSITION : NoodleExtensions::Constants::OFFSET_POSITION, Tracks::ffi::WrapBaseValueType::Vec3);
   rotation =
       TryGetPointData(beatmapAD, animation,
-                      v2 ? NoodleExtensions::Constants::V2_ROTATION : NoodleExtensions::Constants::OFFSET_ROTATION);
+                      v2 ? NoodleExtensions::Constants::V2_ROTATION : NoodleExtensions::Constants::OFFSET_ROTATION, Tracks::ffi::WrapBaseValueType::Quat);
   scale = TryGetPointData(beatmapAD, animation,
-                          v2 ? NoodleExtensions::Constants::V2_SCALE : NoodleExtensions::Constants::SCALE);
+                          v2 ? NoodleExtensions::Constants::V2_SCALE : NoodleExtensions::Constants::SCALE, Tracks::ffi::WrapBaseValueType::Vec3);
   localRotation = TryGetPointData(beatmapAD, animation,
                                   v2 ? NoodleExtensions::Constants::V2_LOCAL_ROTATION
-                                     : NoodleExtensions::Constants::LOCAL_ROTATION);
+                                     : NoodleExtensions::Constants::LOCAL_ROTATION, Tracks::ffi::WrapBaseValueType::Quat);
   dissolve = TryGetPointData(beatmapAD, animation,
-                             v2 ? NoodleExtensions::Constants::V2_DISSOLVE : NoodleExtensions::Constants::DISSOLVE);
+                             v2 ? NoodleExtensions::Constants::V2_DISSOLVE : NoodleExtensions::Constants::DISSOLVE, Tracks::ffi::WrapBaseValueType::Float);
   dissolveArrow = TryGetPointData(beatmapAD, animation,
                                   v2 ? NoodleExtensions::Constants::V2_DISSOLVE_ARROW
-                                     : NoodleExtensions::Constants::DISSOLVE_ARROW);
+                                     : NoodleExtensions::Constants::DISSOLVE_ARROW, Tracks::ffi::WrapBaseValueType::Float);
   cuttable = TryGetPointData(beatmapAD, animation,
-                             v2 ? NoodleExtensions::Constants::V2_CUTTABLE : NoodleExtensions::Constants::INTERACTABLE);
+                             v2 ? NoodleExtensions::Constants::V2_CUTTABLE : NoodleExtensions::Constants::INTERACTABLE, Tracks::ffi::WrapBaseValueType::Float);
   definitePosition = TryGetPointData(beatmapAD, animation,
                                      v2 ? NoodleExtensions::Constants::V2_DEFINITE_POSITION
-                                        : NoodleExtensions::Constants::DEFINITE_POSITION);
+                                        : NoodleExtensions::Constants::DEFINITE_POSITION, Tracks::ffi::WrapBaseValueType::Vec3);
 }
 
 ObjectCustomData::ObjectCustomData(rapidjson::Value const& customData, CustomJSONData::CustomNoteData* noteData,

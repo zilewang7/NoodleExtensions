@@ -1,9 +1,11 @@
 #pragma once
 #include "GlobalNamespace/BeatmapObjectSpawnMovementData.hpp"
-#include "GlobalNamespace/PlayerHeightDetector.hpp"
-#include "sombrero/shared/ColorUtils.hpp"
 #include "GlobalNamespace/BeatmapObjectSpawnController.hpp"
+#include "GlobalNamespace/IJumpOffsetYProvider.hpp"
+#include "GlobalNamespace/VariableMovementDataProvider.hpp"
 #include "Zenject/DiContainer.hpp"
+#include "sombrero/shared/ColorUtils.hpp"
+#include "custom-json-data/shared/CustomBeatmapData.h"
 
 #pragma once
 
@@ -29,6 +31,11 @@ public:
   static float beatsPerMinute;
   static float numberOfLines;
   static SafePtr<Zenject::DiContainer> GameplayCoreContainer;
+  static SafePtr<GlobalNamespace::IJumpOffsetYProvider> JumpOffsetYProvider;
+  static SafePtr<GlobalNamespace::VariableMovementDataProvider> VariableMovementDataProvider;
+  static SafePtr<GlobalNamespace::BeatmapObjectSpawnController::InitData> InitData;
+  static SafePtr<GlobalNamespace::BeatmapObjectSpawnController> beatmapObjectSpawnController;
+  static SafePtr<CustomJSONData::CustomBeatmapData> customBeatmapData;
   static GlobalNamespace::BeatmapObjectSpawnMovementData::NoteJumpValueType noteJumpValueType;
   static float noteJumpValue;
   

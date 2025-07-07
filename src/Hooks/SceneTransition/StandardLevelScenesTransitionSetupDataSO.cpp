@@ -28,7 +28,7 @@ MAKE_HOOK_MATCH(StandardLevelScenesTransitionSetupDataSO_Init,
   }
 
   // TODO: Fix environment override
-  SceneTransitionHelper::Patch(customBeatmapLevel.value(), self->beatmapKey, self->environmentInfo,
+  SceneTransitionHelper::Patch(customBeatmapLevel.value(), self->beatmapKey, self->targetEnvironmentInfo,
                                playerSpecificSettings);
 
   StandardLevelScenesTransitionSetupDataSO_Init(self, playerSpecificSettings, backButtonText, startPaused);

@@ -33,7 +33,7 @@
     },
     {
       "id": "bs-cordl",
-      "versionRange": "^4030.0.0",
+      "versionRange": "^4006.0.0",
       "additionalData": {}
     },
     {
@@ -45,7 +45,7 @@
     },
     {
       "id": "custom-json-data",
-      "versionRange": "^0.22.0",
+      "versionRange": "^0.24.0",
       "additionalData": {}
     },
     {
@@ -55,7 +55,7 @@
     },
     {
       "id": "tracks",
-      "versionRange": "^2.0.0",
+      "versionRange": "^2.3.0",
       "additionalData": {}
     },
     {

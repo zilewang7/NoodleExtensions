@@ -23,7 +23,7 @@ MAKE_HOOK_MATCH(
         ::GlobalNamespace::ColorScheme*, ::GlobalNamespace::GameplayModifiers*,
         ::GlobalNamespace::PlayerSpecificSettings*, ::GlobalNamespace::EnvironmentsListModel*,
         ::GlobalNamespace::BeatmapLevelsModel*, ::GlobalNamespace::AudioClipAsyncLoader*,
-        ::BeatSaber::PerformancePresets::PerformancePreset*, ::GlobalNamespace::BeatmapDataLoader*, ::StringW)>(
+        ::GlobalNamespace::SettingsManager*, ::GlobalNamespace::BeatmapDataLoader*, ::StringW)>(
         &::GlobalNamespace::MissionLevelScenesTransitionSetupDataSO::Init),
     void, MissionLevelScenesTransitionSetupDataSO* self, ::StringW missionId,
     ByRef<::GlobalNamespace::BeatmapKey> beatmapKey, ::GlobalNamespace::BeatmapLevel* beatmapLevel,
@@ -33,14 +33,14 @@ MAKE_HOOK_MATCH(
     ::GlobalNamespace::EnvironmentsListModel* environmentsListModel,
     ::GlobalNamespace::BeatmapLevelsModel* beatmapLevelsModel,
     ::GlobalNamespace::AudioClipAsyncLoader* audioClipAsyncLoader,
-    ::BeatSaber::PerformancePresets::PerformancePreset* performancePreset,
+    ::GlobalNamespace::SettingsManager* SettingsManager,
     ::GlobalNamespace::BeatmapDataLoader* beatmapDataLoader, ::StringW backButtonText) {
   auto customBeatmapLevel = il2cpp_utils::try_cast<SongCore::SongLoader::CustomBeatmapLevel>(beatmapLevel);
   if (!customBeatmapLevel) {
     MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives,
                                                  overrideColorScheme, gameplayModifiers, playerSpecificSettings,
                                                  environmentsListModel, beatmapLevelsModel, audioClipAsyncLoader,
-                                                 performancePreset, beatmapDataLoader, backButtonText);
+                                                 SettingsManager, beatmapDataLoader, backButtonText);
     return;
   }
 
@@ -53,7 +53,7 @@ MAKE_HOOK_MATCH(
   MissionLevelScenesTransitionSetupDataSO_Init(self, missionId, beatmapKey, beatmapLevel, missionObjectives,
                                                overrideColorScheme, gameplayModifiers, playerSpecificSettings,
                                                environmentsListModel, beatmapLevelsModel, audioClipAsyncLoader,
-                                               performancePreset, beatmapDataLoader, backButtonText);
+                                               SettingsManager, beatmapDataLoader, backButtonText);
 }
 
 void InstallMissionLevelScenesTransitionSetupDataSOHooks() {

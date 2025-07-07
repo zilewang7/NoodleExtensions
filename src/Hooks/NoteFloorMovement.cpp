@@ -22,8 +22,9 @@ static NEVector::Vector3 DefinitePositionTranspile(NEVector::Vector3 original, N
     return original;
   }
 
+  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
   std::optional<NEVector::Vector3> position =
-      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, 0);
+      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, 0, context->GetBaseProviderContext());
   if (!position.has_value()) {
     return original;
   }
@@ -35,19 +36,14 @@ static NEVector::Vector3 DefinitePositionTranspile(NEVector::Vector3 original, N
 
 MAKE_HOOK_MATCH(NoteFloorMovement_ManualUpdate, &NoteFloorMovement::ManualUpdate, Vector3, NoteFloorMovement* self) {
   if (!Hooks::isNoodleHookEnabled()) return NoteFloorMovement_ManualUpdate(self);
-  float num = TimeSourceHelper::getSongTime(self->_audioTimeSyncController) - self->startTime;
+  float num = TimeSourceHelper::getSongTime(self->_audioTimeSyncController) - (self->_beatTime - self->_variableMovementDataProvider->moveDuration - self->_variableMovementDataProvider->halfJumpDuration);
 
-  self->_localPosition = NEVector::Vector3::Lerp(self->startPos, self->endPos, num / self->moveDuration);
-  self->_localPosition = DefinitePositionTranspile(self->localPosition, self);
+  self->_localPosition = NEVector::Vector3::Lerp(NEVector::Vector3(self->_variableMovementDataProvider->moveStartPosition) + self->_moveStartOffset, NEVector::Vector3(self->_variableMovementDataProvider->moveEndPosition) + self->_moveEndOffset,
+                                                 num / self->_variableMovementDataProvider->moveDuration);
+  self->_localPosition = DefinitePositionTranspile(self->_localPosition, self);
 
-  NEVector::Vector3 vector = NEVector::Quaternion(self->worldRotation) * NEVector::Vector3(self->localPosition);
+  NEVector::Vector3 vector = NEVector::Quaternion(self->_worldRotation) * NEVector::Vector3(self->_localPosition);
   self->get_transform()->set_localPosition(vector);
-  if (num >= self->moveDuration) {
-    Action* action = self->floorMovementDidFinishEvent;
-    if (action) {
-      action->Invoke();
-    }
-  }
   return vector;
 }
 

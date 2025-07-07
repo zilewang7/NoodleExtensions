@@ -44,7 +44,7 @@ static constexpr void AddToTrack(CustomJSONData::CustomNoteData* noteData, GameO
     auto const& tracks = TracksAD::getAD(noteData->customData).tracks;
     if (!tracks.empty()) {
       for (auto& track : tracks) {
-        track->AddGameObject(gameObject);
+        track.RegisterGameObject(gameObject);
       }
     }
   }

@@ -13,30 +13,15 @@
 
 using namespace GlobalNamespace;
 
-void SpawnDataHelper::GetNoteJumpValues(BeatmapObjectSpawnController::InitData* initData,
-                                        BeatmapObjectSpawnMovementData* spawnMovementData,
-                                        std::optional<float> const njs, std::optional<float> const startBeatOffset,
-                                        float& jumpDuration, float& jumpDistance, NEVector::Vector3& localMoveStartPos,
-                                        NEVector::Vector3& localMoveEndPos, NEVector::Vector3& localJumpEndPos) {
-  jumpDuration = GetJumpDuration(initData, spawnMovementData, njs, startBeatOffset);
-
-  NEVector::Vector3 const forwardVec(spawnMovementData->_forwardVec);
-  NEVector::Vector3 const centerPos(spawnMovementData->centerPos);
-
-  jumpDistance = (njs.value_or(spawnMovementData->noteJumpMovementSpeed)) * jumpDuration;
-  localMoveEndPos = centerPos + (forwardVec * (jumpDistance * 0.5f));
-  localJumpEndPos = centerPos - (forwardVec * (jumpDistance * 0.5f));
-  localMoveStartPos = centerPos + (forwardVec * (spawnMovementData->_moveDistance + (jumpDistance * 0.5f)));
+float SpawnDataHelper::HighestJumpPosYForLineLayer(float lineLayer)
+{
+    // Magic numbers below found with linear regression y=mx+b using existing HighestJumpPosYForLineLayer values
+    return (0.525f * lineLayer) + 0.858333f + NECaches::JumpOffsetYProvider->get_jumpOffsetY();
 }
 
-constexpr float Orig_LineYPosForLineLayer(GlobalNamespace::NoteLineLayer lineLayer) {
-  if (lineLayer == GlobalNamespace::NoteLineLayer::Base) {
-    return 0.25f;
-  }
-  if (lineLayer == GlobalNamespace::NoteLineLayer::Upper) {
-    return 0.85f;
-  }
-  return 1.45f;
+float SpawnDataHelper::GetGravityBase(float noteLineLayer, float beforeJumpLineLayer)
+{
+  return HighestJumpPosYForLineLayer(noteLineLayer) - LineYPosForLineLayer(beforeJumpLineLayer);
 }
 
 float SpawnDataHelper::LineYPosForLineLayer(float height) {

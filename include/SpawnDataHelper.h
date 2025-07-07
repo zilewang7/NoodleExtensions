@@ -56,35 +56,40 @@ constexpr float OneBeatDuration(float bpm) {
   return 60.0f / bpm;
 }
 
-constexpr float GetJumpDuration(BeatmapObjectSpawnController::InitData* initData,
-                                BeatmapObjectSpawnMovementData* movementData, std::optional<float> inputNjs,
+constexpr float GetJumpDuration(std::optional<float> inputNjs,
                                 std::optional<float> inputOffset) {
 
-  if (!inputNjs && !inputOffset &&
-      initData->noteJumpValueType == BeatmapObjectSpawnMovementData::NoteJumpValueType::JumpDuration) {
-    return movementData->jumpDuration;
+  if (!inputNjs && !inputOffset) {
+    return NECaches::VariableMovementDataProvider->get_jumpDuration();
   }
 
-  float oneBeatDuration = OneBeatDuration(initData->beatsPerMinute);
+  float njs = inputNjs.value_or(NECaches::NECaches::VariableMovementDataProvider->get_noteJumpSpeed());
+  float spawnOffset = inputOffset.value_or(NECaches::InitData->noteJumpValue);
+  auto valueType = NECaches::InitData->noteJumpValueType;
+  if (valueType == GlobalNamespace::BeatmapObjectSpawnMovementData::NoteJumpValueType::JumpDuration) {
+    return spawnOffset * 2.0f;
+  }
+
+  auto movementData = NECaches::beatmapObjectSpawnController->beatmapObjectSpawnMovementData;
+
+  float oneBeatDuration = OneBeatDuration(NECaches::InitData->beatsPerMinute);
   float halfJumpDurationInBeats =
-      CalculateHalfJumpDurationInBeats(movementData->_startHalfJumpDurationInBeats, movementData->_maxHalfJumpDistance,
-                                       inputNjs.value_or(movementData->noteJumpMovementSpeed), oneBeatDuration,
-                                       inputOffset.value_or(movementData->_noteJumpStartBeatOffset));
+      CalculateHalfJumpDurationInBeats(movementData->_startHalfJumpDurationInBeats, 
+                                       movementData->_maxHalfJumpDistance,
+                                       njs, oneBeatDuration,
+                                       spawnOffset);
 
   return oneBeatDuration * halfJumpDurationInBeats * 2.0f;
 }
 
-inline float GetSpawnAheadTime(BeatmapObjectSpawnController::InitData* initData,
-                               BeatmapObjectSpawnMovementData* movementData, std::optional<float> inputNjs,
+inline float GetSpawnAheadTime(std::optional<float> inputNjs,
                                std::optional<float> inputOffset) {
-  return movementData->moveDuration + (GetJumpDuration(initData, movementData, inputNjs, inputOffset) * 0.5f);
+  return 0.5f + (GetJumpDuration(inputNjs, inputOffset) * 0.5f);
 }
 
-void GetNoteJumpValues(GlobalNamespace::BeatmapObjectSpawnController::InitData* initData,
-                       GlobalNamespace::BeatmapObjectSpawnMovementData* spawnMovementData,
-                       std::optional<float> const njs, std::optional<float> const startBeatOffset, float& jumpDuration,
-                       float& jumpDistance, NEVector::Vector3& localMoveStartPos, NEVector::Vector3& localMoveEndPos,
-                       NEVector::Vector3& localJumpEndPos);
+float HighestJumpPosYForLineLayer(float lineLayer);
+
+float GetGravityBase(float noteLineLayer, float beforeJumpLineLayer);
 
 float LineYPosForLineLayer(float height);
 
@@ -104,26 +109,6 @@ constexpr UnityEngine::Vector3 GetObstacleOffset(GlobalNamespace::BeatmapObjectS
   UnityEngine::Vector3 result = GetNoteOffset(spawnMovementData, lineIndex, lineLayer);
   result.y += -0.15f;
   return result;
-}
-
-constexpr void NoteJumpGravityForLineLayer(GlobalNamespace::BeatmapObjectSpawnMovementData* spawnMovementData,
-                                           float lineLayer, float startLineLayer, float jumpDistance,
-                                           std::optional<float> njs, float& gravity, float& noGravity) {
-  float lineYPos = LineYPosForLineLayer(lineLayer);
-  float startLayerLineYPos = LineYPosForLineLayer(startLineLayer);
-
-  // HighestJumpPosYForLineLayer
-  // Magic numbers below found with linear regression y=mx+b using existing HighestJumpPosYForLineLayer values
-  float highestJump = (0.875f * lineYPos) + 0.639583f + spawnMovementData->get_jumpOffsetY();
-
-  // NoteJumpGravityForLineLayer
-  float num = jumpDistance / (njs.value_or(spawnMovementData->noteJumpMovementSpeed)) * 0.5f;
-  num = 2.f / (num * num);
-  auto GetJumpGravity = [&](float gravityLineYPos) constexpr {
-    return (highestJump - gravityLineYPos) * num;
-  };
-  gravity = GetJumpGravity(startLayerLineYPos);
-  noGravity = GetJumpGravity(lineYPos);
 }
 
 } // namespace SpawnDataHelper

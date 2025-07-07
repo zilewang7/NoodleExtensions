@@ -42,19 +42,17 @@ void ParentObject::UpdateData(bool force) {
     return;
   }
   if (force) {
-    lastCheckedTime = 0;
+    lastCheckedTime = TimeUnit();
   }
 
   float noteLinesDistance = NECaches::get_noteLinesDistanceFast();
 
-  auto const& properties = track->properties;
-  auto const rotation = getPropertyNullableFast<NEVector::Quaternion>(track, properties.rotation, lastCheckedTime);
-  auto const localRotation =
-      getPropertyNullableFast<NEVector::Quaternion>(track, properties.localRotation, lastCheckedTime);
-  auto const position = getPropertyNullableFast<NEVector::Vector3>(track, properties.position, lastCheckedTime);
-  auto const localPosition =
-      getPropertyNullableFast<NEVector::Vector3>(track, properties.localPosition, lastCheckedTime);
-  auto const scale = getPropertyNullableFast<NEVector::Vector3>(track, properties.scale, lastCheckedTime);
+  auto const& properties = track.GetPropertiesMap();
+  auto const rotation = track.GetPropertyNamed(PropertyNames::Rotation).GetQuat(lastCheckedTime);
+  auto const localRotation = track.GetPropertyNamed(PropertyNames::LocalRotation).GetQuat(lastCheckedTime);
+  auto const position = track.GetPropertyNamed(PropertyNames::Position).GetVec3(lastCheckedTime);
+  auto const localPosition = track.GetPropertyNamed(PropertyNames::LocalPosition).GetVec3(lastCheckedTime);
+  auto const scale = track.GetPropertyNamed(PropertyNames::Scale).GetVec3(lastCheckedTime);
 
   auto transform = origin;
 
@@ -79,18 +77,15 @@ void ParentObject::UpdateData(bool force) {
 
 void ParentObject::UpdateDataOld(bool forced) {
   if (forced) {
-    lastCheckedTime = 0;
+    lastCheckedTime = TimeUnit();
   }
   float noteLinesDistance = NECaches::get_noteLinesDistanceFast();
 
-  std::optional<NEVector::Quaternion> rotation =
-      getPropertyNullableFast<NEVector::Quaternion>(track, track->properties.rotation, 0);
-  std::optional<NEVector::Vector3> position =
-      getPropertyNullableFast<NEVector::Vector3>(track, track->properties.position, 0);
-  std::optional<NEVector::Quaternion> localRotation =
-      getPropertyNullableFast<NEVector::Quaternion>(track, track->properties.localRotation, 0);
-  std::optional<NEVector::Vector3> scale =
-      getPropertyNullableFast<NEVector::Vector3>(track, track->properties.scale, 0);
+  auto const& properties = track.GetPropertiesMap();
+  auto const rotation = track.GetPropertyNamed(PropertyNames::Rotation).GetQuat(lastCheckedTime);
+  auto const localRotation = track.GetPropertyNamed(PropertyNames::LocalRotation).GetQuat(lastCheckedTime);
+  auto const position = track.GetPropertyNamed(PropertyNames::Position).GetVec3(lastCheckedTime);
+  auto const scale = track.GetPropertyNamed(PropertyNames::Scale).GetVec3(lastCheckedTime);
 
   NEVector::Quaternion worldRotationQuaternion = startRot;
   NEVector::Vector3 positionVector = worldRotationQuaternion * (startPos * noteLinesDistance);
@@ -149,7 +144,7 @@ void ParentObject::AssignTrack(ParentTrackEventData const& parentTrackEventData)
   instance->worldPositionStays = parentTrackEventData.worldPositionStays;
 
   Transform* transform = instance->origin;
-  if (instance->track->v2) {
+  if (instance->track.v2) {
     if (parentTrackEventData.pos.has_value()) {
       instance->startPos = *parentTrackEventData.pos;
       transform->set_localPosition(instance->startPos * NECaches::get_noteLinesDistanceFast());
@@ -190,7 +185,7 @@ void ParentObject::AssignTrack(ParentTrackEventData const& parentTrackEventData)
   }
 
   auto startTime = std::chrono::high_resolution_clock::now();
-  parentTrackEventData.parentTrack->AddGameObject(parentGameObject);
+  parentTrackEventData.parentTrack.RegisterGameObject(parentGameObject);
 
   for (auto& track : parentTrackEventData.childrenTracks) {
     if (track.track == parentTrackEventData.parentTrack.track) {
@@ -198,15 +193,15 @@ void ParentObject::AssignTrack(ParentTrackEventData const& parentTrackEventData)
     }
 
     for (auto& parentObject : ParentController::parentObjects) {
-      track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, parentObject };
-      parentObject->childrenTracks.erase(track);
+      //track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, parentObject };
+      //parentObject->childrenTracks.erase(track);
     }
 
-    for (auto& gameObject : track->gameObjects) {
+    for (auto& gameObject : track.GetGameObjects()) {
       instance->ParentToObject(get_transform(gameObject));
     }
-    instance->childrenTracks.emplace(track);
-    track->gameObjectModificationEvent += { &ParentObject::HandleGameObject, instance };
+    //instance->childrenTracks.emplace(track);
+    //track.gameObjectModificationEvent += { &ParentObject::HandleGameObject, instance };
   }
 
   ParentController::parentObjects.emplace_back(instance);
@@ -240,11 +235,11 @@ void ParentObject::HandleGameObject(TrackW track, UnityEngine::GameObject* go, b
 }
 
 ParentObject::~ParentObject() {
-  for (auto& childTrack : childrenTracks) {
-    childTrack->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, this };
-  }
+  //for (auto& childTrack : childrenTracks) {
+    //childTrack->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, this };
+  //}
   // just in case
-  track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, this };
+  //track->gameObjectModificationEvent -= { &ParentObject::HandleGameObject, this };
 }
 
 void ParentController::OnDestroy() {

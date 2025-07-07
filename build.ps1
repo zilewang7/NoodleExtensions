@@ -12,7 +12,10 @@ if ($clean.IsPresent)
     }
 }
 
-$NDKPath = Get-Content $PSScriptRoot/ndkpath.txt
+$ndkPathFile = Join-Path $PSScriptRoot "ndkpath.txt"
+if (Test-Path $ndkPathFile) {
+    $NDKPath = Get-Content $ndkPathFile
+}
 
 if (($clean.IsPresent) -or (-not (Test-Path -Path "build")))
 {

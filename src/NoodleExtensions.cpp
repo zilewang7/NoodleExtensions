@@ -9,7 +9,6 @@
 #include "scotland2/shared/loader.hpp"
 #include "scotland2/shared/modloader.h"
 
-float NECaches::noteJumpMovementSpeed;
 float NECaches::noteJumpStartBeatOffset;
 float NECaches::numberOfLines;
 float NECaches::beatsPerMinute;

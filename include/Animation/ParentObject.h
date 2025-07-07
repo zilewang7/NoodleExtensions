@@ -23,12 +23,12 @@ private:
   NEVector::Quaternion startLocalRot = NEVector::Quaternion::identity();
   NEVector::Vector3 startScale = NEVector::Vector3::one();
   bool worldPositionStays;
-  uint64_t lastCheckedTime;
+  TimeUnit lastCheckedTime;
 
 public:
   ~ParentObject();
 
-  std::unordered_set<TrackW> childrenTracks;
+  //std::unordered_set<TrackW> childrenTracks;
 
   void UpdateData(bool forced);
   void UpdateDataOld(bool forced);

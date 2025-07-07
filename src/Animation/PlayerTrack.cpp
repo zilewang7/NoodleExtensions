@@ -111,7 +111,7 @@ void PlayerTrack::AssignTrack(TrackW track, PlayerTrackObject object) {
   auto& playerTrack = PlayerTrack::playerTracks[object];
 
   if (playerTrack && playerTrack->track) {
-    playerTrack->track->RemoveGameObject(playerTrack->get_gameObject());
+    //playerTrack->track.RemoveGameObject(playerTrack->get_gameObject());
   }
 
   // Init
@@ -120,25 +120,26 @@ void PlayerTrack::AssignTrack(TrackW track, PlayerTrackObject object) {
   }
 
   if (!playerTrack) {
-    NELogger::Logger.error("Failed to initialize player track {} {}", track ? track->name : "", (int)object);
+    NELogger::Logger.error("Failed to initialize player track {} {}", track ? track.GetName() : "", (int)object);
     return;
   }
 
   GameObject* noodleObject = playerTrack->origin->gameObject;
 
   // this is only used in v2
-  playerTrack->set_enabled(track->v2);
+  playerTrack->set_enabled(track.v2);
   playerTrack->track = track;
 
   if (playerTrack && playerTrack->track) {
-    playerTrack->track->AddGameObject(playerTrack->get_gameObject());
+    playerTrack->track.RegisterGameObject(playerTrack->get_gameObject());
   }
 
-  if (track->v2) {
+  if (track.v2) {
     playerTrack->Update();
   } else {
-    playerTrack->trackController =
-        Tracks::GameObjectTrackController::HandleTrackData(noodleObject, { track }, 0.6, track->v2, true)
+    
+      TrackW tracksArray[] = { track };
+      playerTrack->trackController = Tracks::GameObjectTrackController::HandleTrackData(noodleObject, std::span<const TrackW>(tracksArray, 1), 0.6, track.v2, true)
             .value_or(nullptr);
     playerTrack->trackController->UpdateData(true);
   }
@@ -182,11 +183,9 @@ void PlayerTrack::OnDestroy() {
 void PlayerTrack::UpdateDataOld() {
   float noteLinesDistance = NECaches::get_noteLinesDistanceFast();
 
-  std::optional<NEVector::Quaternion> rotation =
-      getPropertyNullable<NEVector::Quaternion>(track, track->properties.rotation);
-  std::optional<NEVector::Vector3> position = getPropertyNullable<NEVector::Vector3>(track, track->properties.position);
-  std::optional<NEVector::Quaternion> localRotation =
-      getPropertyNullable<NEVector::Quaternion>(track, track->properties.localRotation);
+  std::optional<NEVector::Quaternion> rotation = track.GetPropertyNamed(PropertyNames::Rotation).GetQuat();
+  std::optional<NEVector::Vector3> position = track.GetPropertyNamed(PropertyNames::Position).GetVec3();
+  std::optional<NEVector::Quaternion> localRotation = track.GetPropertyNamed(PropertyNames::LocalRotation).GetQuat();
 
   if (NECaches::LeftHandedMode) {
     rotation = Animation::MirrorQuaternionNullable(rotation);

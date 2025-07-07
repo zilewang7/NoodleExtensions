@@ -108,12 +108,9 @@ void NECaches::ClearNoteCaches() {
 }
 
 MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController* self,
-                GlobalNamespace::NoteData* noteData, float worldRotation, ::UnityEngine::Vector3 moveStartPos,
-                ::UnityEngine::Vector3 moveEndPos, ::UnityEngine::Vector3 jumpEndPos, float moveDuration,
-                float jumpDuration, float jumpGravity, float endRotation, float uniformScale, bool rotateTowardsPlayer,
-                bool useRandomRotation) {
-  NoteController_Init(self, noteData, worldRotation, moveStartPos, moveEndPos, jumpEndPos, moveDuration, jumpDuration,
-                      jumpGravity, endRotation, uniformScale, rotateTowardsPlayer, useRandomRotation);
+                GlobalNamespace::NoteData* noteData, ByRef<GlobalNamespace::NoteSpawnData> noteSpawnData, 
+                float_t endRotation, float_t uniformScale, bool rotateTowardsPlayer, bool useRandomRotation) {
+  NoteController_Init(self, noteData, noteSpawnData, endRotation, uniformScale, rotateTowardsPlayer, useRandomRotation);
 
   if (!Hooks::isNoodleHookEnabled()) return;
 
@@ -163,11 +160,6 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   NoteJump* noteJump = self->_noteMovement->_jump;
   NoteFloorMovement* floorMovement = self->_noteMovement->_floorMovement;
 
-  float zOffset = self->_noteMovement->_zOffset;
-  moveStartPos.z += zOffset;
-  moveEndPos.z += zOffset;
-  jumpEndPos.z += zOffset;
-
   NEVector::Quaternion localRotation = NEVector::Quaternion::identity();
   if (ad.objectData.rotation || ad.objectData.localRotation) {
     if (ad.objectData.localRotation) {
@@ -193,9 +185,16 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   if (!tracks.empty()) {
     auto go = self->get_gameObject();
     for (auto& track : tracks) {
-      track->AddGameObject(go);
+      track.RegisterGameObject(go);
     }
   }
+
+  Vector3 moveStartPos = noteSpawnData->moveStartOffset;
+  Vector3 moveEndPos = noteSpawnData->moveEndOffset;
+  Vector3 jumpEndPos = noteSpawnData->jumpEndOffset;
+  float jumpGravity =
+      self->_noteMovement->_variableMovementDataProvider->CalculateCurrentNoteJumpGravity(noteSpawnData->gravityBase);
+  float halfJumpDuration = self->_noteMovement->_variableMovementDataProvider->halfJumpDuration;
 
   ad.endRotation = endRotation;
   ad.moveStartPos = moveStartPos;
@@ -204,13 +203,9 @@ MAKE_HOOK_MATCH(NoteController_Init, &NoteController::Init, void, NoteController
   ad.worldRotation = self->get_worldRotation();
   ad.localRotation = localRotation;
 
-  float num2 = jumpDuration * 0.5f;
-  float startVerticalVelocity = jumpGravity * num2;
-  float yOffset = (startVerticalVelocity * num2) - (jumpGravity * num2 * num2 * 0.5f);
-  Vector3 noteOffset = moveEndPos;
-  noteOffset.z = 0;
-  noteOffset.y += yOffset;
-  ad.noteOffset = noteOffset;
+  float startVerticalVelocity = jumpGravity * halfJumpDuration;
+  float yOffset = (startVerticalVelocity * halfJumpDuration) - (jumpGravity * halfJumpDuration * halfJumpDuration * 0.5f);
+  ad.noteOffset = Vector3(jumpEndPos.x, jumpEndPos.y + yOffset, 0);
 
   self->Update();
 }
@@ -251,26 +246,30 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
 
   NoteJump* noteJump = self->_noteMovement->_jump;
   NoteFloorMovement* floorMovement = self->_noteMovement->_floorMovement;
+  IVariableMovementDataProvider* variableMovementDataProvider = self->_noteMovement->_variableMovementDataProvider;
 
   auto time = NoodleExtensions::getTimeProp(tracks);
   float normalTime;
   if (time) {
     normalTime = time.value();
   } else {
-    float jumpDuration = noteJump->jumpDuration;
+    float jumpDuration = variableMovementDataProvider->jumpDuration;
     float elapsedTime = TimeSourceHelper::getSongTime(noteJump->_audioTimeSyncController) -
                         (customNoteData->time - (jumpDuration * 0.5f));
     normalTime = elapsedTime / jumpDuration;
   }
 
-  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime);
+  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime, context->GetBaseProviderContext());
 
   if (offset.positionOffset.has_value()) {
     auto const& offsetPos = *offset.positionOffset;
-    floorMovement->_startPos = ad.moveStartPos + offsetPos;
-    floorMovement->_endPos = ad.moveEndPos + offsetPos;
-    noteJump->_startPos = ad.moveEndPos + offsetPos;
-    noteJump->_endPos = ad.jumpEndPos + offsetPos;
+    floorMovement->_moveStartOffset = ad.moveStartPos + offsetPos;
+    floorMovement->_moveEndOffset = ad.moveEndPos + offsetPos;
+    noteJump->_startOffset = ad.moveEndPos + offsetPos;
+    noteJump->_endOffset = ad.jumpEndPos + offsetPos;
+    noteJump->_startPos = NEVector::Vector3(variableMovementDataProvider->moveEndPosition) + noteJump->_startOffset;
+    noteJump->_endPos = NEVector::Vector3(variableMovementDataProvider->jumpEndPosition) + noteJump->_endOffset;
   }
 
   auto transform = self->get_transform();

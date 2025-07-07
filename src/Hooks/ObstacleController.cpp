@@ -54,22 +54,20 @@ void NECaches::ClearObstacleCaches() {
 }
 
 float obstacleTimeAdjust(ObstacleController* oc, float original, std::span<TrackW> tracks) {
-  if (original <= oc->move1Duration) return original;
+  float moveDuration = oc->_variableMovementDataProvider->moveDuration;
+  if (original <= moveDuration) return original;
 
   auto time = NoodleExtensions::getTimeProp(tracks);
   if (!time) return original;
 
-  return (time.value() * (oc->_finishMovementTime - oc->move1Duration)) + oc->move1Duration;
+  return (time.value() * (oc->_finishMovementTime - moveDuration)) + moveDuration;
 }
 
 MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, ObstacleController* self,
-                ObstacleData* normalObstacleData, float worldRotation, Vector3 startPos, Vector3 midPos, Vector3 endPos,
-                float move1Duration, float move2Duration, float singleLineWidth, float height) {
+                ObstacleData* normalObstacleData, ByRef<GlobalNamespace::ObstacleSpawnData> obstacleSpawnData) {
   if (!Hooks::isNoodleHookEnabled())
-    return ObstacleController_Init(self, normalObstacleData, worldRotation, startPos, midPos, endPos, move1Duration,
-                                   move2Duration, singleLineWidth, height);
-  ObstacleController_Init(self, normalObstacleData, worldRotation, startPos, midPos, endPos, move1Duration,
-                          move2Duration, singleLineWidth, height);
+    return ObstacleController_Init(self, normalObstacleData, obstacleSpawnData);
+  ObstacleController_Init(self, normalObstacleData, obstacleSpawnData);
 
   static auto CustomKlass = classof(CustomJSONData::CustomObstacleData*);
 
@@ -139,45 +137,49 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   static auto Quaternion_Inverse =
       il2cpp_utils::il2cpp_type_check::FPtrWrapper<static_cast<UnityEngine::Quaternion (*)(UnityEngine::Quaternion)>(
           &UnityEngine::Quaternion::Inverse)>::get();
-  static auto Quaternion_Euler =
-      il2cpp_utils::il2cpp_type_check::FPtrWrapper<static_cast<UnityEngine::Quaternion (*)(float, float, float)>(
-          &UnityEngine::Quaternion::Euler)>::get();
 
   if (ad.objectData.rotation) {
     auto const& rotation = *ad.objectData.rotation;
 
     self->_worldRotation = rotation;
-    self->_inverseWorldRotation = Quaternion_Inverse(rotation);
     ad.worldRotation = rotation;
     transform->localRotation = rotation;
   }
 
-  auto const& scale = ad.objectData.scale;
+  if (ad.objectData.localRotation) {
+    auto const& localRotation = *ad.objectData.localRotation;
+    transform->localRotation = NEVector::Quaternion(self->_worldRotation) * localRotation;
+  }
 
-  if (scale) {
-    if (scale->at(0)) {
-      self->_width = *scale->at(0) * singleLineWidth;
+  auto scale = NEVector::Vector3::one();
+  if (ad.objectData.scale) {
+    scale = NEVector::Vector3(ad.objectData.scale->at(0).value_or(1.0f), ad.objectData.scale->at(1).value_or(1.0f), ad.objectData.scale->at(2).value_or(1.0f));
+  }
+  transform->set_localScale(scale);
+
+  auto const& scale2 = ad.objectData.scale;
+
+  if (scale2) {
+    if (scale2->at(0)) {
+      self->_width = *scale2->at(0) * /*NoteLinesWidth*/ 0.6f;
     }
 
-    if (scale->at(2)) {
-      self->_length = *scale->at(2) * /*NoteLinesDistace*/ 0.6f;
+    if (scale2->at(2)) {
+      self->_length = *scale2->at(2) * /*NoteLinesDistace*/ 0.6f;
     }
   }
 
-  auto b = NEVector::Vector3((self->_width - singleLineWidth) * 0.5f, 0, 0);
-  self->_startPos = NEVector::Vector3(startPos) + b;
-  self->_midPos = NEVector::Vector3(midPos) + b;
-  self->_endPos = NEVector::Vector3(endPos) + b;
   ad.moveStartPos = self->_startPos;
   ad.moveEndPos = self->_midPos;
   ad.jumpEndPos = self->_endPos;
+  ad.localRotation = ad.objectData.localRotation.value_or(NEVector::Quaternion::identity());
 
   Vector3 noteOffset = ad.jumpEndPos;
   noteOffset.z = 0;
   ad.noteOffset = noteOffset;
 
-  self->_stretchableObstacle->SetSizeAndColor(self->width * 0.98f, self->height, self->length,
-                                              self->_stretchableObstacle->_obstacleFrame->color);
+  self->_stretchableObstacle->SetAllProperties(self->width * 0.98f, self->height, self->length,
+                                              self->_stretchableObstacle->_obstacleFrame->color, self->_audioTimeSyncController->songTime);
   self->_bounds = self->_stretchableObstacle->bounds;
 
   setBounds();
@@ -197,7 +199,7 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
   if (!tracks.empty()) {
     auto go = self->get_gameObject();
     for (auto& track : tracks) {
-      track->AddGameObject(go);
+      track.RegisterGameObject(go);
     }
   }
 
@@ -206,18 +208,36 @@ MAKE_HOOK_MATCH(ObstacleController_Init, &ObstacleController::Init, void, Obstac
 }
 
 static void ObstacleController_ManualUpdateTranspile(ObstacleController* self, float const elapsedTime) {
+
+  if (!self->_passedAvoidedMarkReported) {
+		self->_startTimeOffset = self->_obstacleData->time - self->_variableMovementDataProvider->moveDuration - self->_variableMovementDataProvider->halfJumpDuration;
+		self->_passedThreeQuartersOfJumpDurationTime = self->_variableMovementDataProvider->moveDuration + self->_variableMovementDataProvider->jumpDuration * 0.75f;
+		self->_passedAvoidedMarkTime = self->_variableMovementDataProvider->moveDuration + self->_variableMovementDataProvider->halfJumpDuration + self->_obstacleDuration + 0.15f;
+		self->_finishMovementTime = self->_variableMovementDataProvider->moveDuration + self->_variableMovementDataProvider->jumpDuration + self->_obstacleDuration;
+		self->_startPos = NEVector::Vector3(self->_variableMovementDataProvider->moveStartPosition) + self->_obstacleSpawnData.moveOffset;
+		self->_midPos = NEVector::Vector3(self->_variableMovementDataProvider->moveEndPosition) + self->_obstacleSpawnData.moveOffset;
+		self->_endPos = NEVector::Vector3(self->_variableMovementDataProvider->jumpEndPosition) + self->_obstacleSpawnData.moveOffset;
+	}
+
   // TRANSPILE HERE
   float num = elapsedTime;
   // TRANSPILE HERE
+
   NEVector::Vector3 posForTime = self->GetPosForTime(num);
   self->get_transform()->set_localPosition(NEVector::Quaternion(self->_worldRotation) * posForTime);
+	self->_length = self->GetObstacleLength();
+	if (self->_variableMovementDataProvider->wasUpdatedThisFrame)
+	{
+		self->_stretchableObstacle->SetSizeAndOffset(self->_width, self->_height, self->_length, self->_audioTimeSyncController->songTime);
+	}
+
   auto action = self->didUpdateProgress;
   if (action) {
     action->Invoke(self, num);
   }
-  if (!self->_passedThreeQuartersOfMove2Reported && num > self->move1Duration + self->move2Duration * 0.75f) {
-    self->_passedThreeQuartersOfMove2Reported = true;
-    auto action2 = self->passedThreeQuartersOfMove2Event;
+  if (!self->_passedThreeQuartersOfJumpDurationReported && num > self->_passedThreeQuartersOfJumpDurationTime) {
+    self->_passedThreeQuartersOfJumpDurationReported = true;
+    auto action2 = self->passedThreeQuartersOfJumpDurationEvent;
     if (action2) {
       action2->Invoke(self);
     }
@@ -265,10 +285,14 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     return;
   }
 
+  float moveDuration = self->_variableMovementDataProvider->moveDuration;
+  float jumpDuration = self->_variableMovementDataProvider->jumpDuration;
+  float obstacleDuration = self->_obstacleData->duration;
+
   float const songTime = TimeSourceHelper::getSongTime(self->_audioTimeSyncController);
   float const elapsedTime = songTime - self->_startTimeOffset;
   float const obstacleOriginalTime =
-      (elapsedTime - self->move1Duration) / (self->move2Duration + self->_obstacleDuration);
+      (elapsedTime - moveDuration) / (jumpDuration + obstacleDuration);
   float normalTime;
 
   auto animatedTime = NoodleExtensions::getTimeProp(tracks);
@@ -279,12 +303,12 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     normalTime = obstacleOriginalTime;
   }
 
-  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime);
+  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime, context->GetBaseProviderContext());
 
   if (offset.positionOffset.has_value()) {
-    self->_startPos = ad.moveStartPos + *offset.positionOffset;
-    self->_midPos = ad.moveEndPos + *offset.positionOffset;
-    self->_endPos = ad.jumpEndPos + *offset.positionOffset;
+    NEVector::Vector3 moveOffset = ad.moveStartPos;
+    self->_obstacleSpawnData = GlobalNamespace::ObstacleSpawnData(moveOffset + offset.positionOffset.value(), self->_obstacleSpawnData.obstacleWidth, self->_obstacleSpawnData.obstacleHeight);
   }
 
   Transform* transform = self->get_transform();
@@ -297,8 +321,6 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     if (offset.rotationOffset.has_value()) {
       worldRotationQuaternion = worldRotationQuaternion * *offset.rotationOffset;
       self->_worldRotation = worldRotationQuaternion;
-
-      self->_inverseWorldRotation = NEVector::Quaternion::Inverse(worldRotationQuaternion);
     }
 
     worldRotationQuaternion = worldRotationQuaternion * localRotation;
@@ -422,18 +444,24 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
 
   auto const& tracks = TracksAD::getAD(obstacleData->customData).tracks;
 
-  float jumpTime = (time - self->move1Duration) / (self->move2Duration + self->_obstacleDuration);
+  float moveDuration = self->_variableMovementDataProvider->moveDuration;
+  float jumpDuration = self->_variableMovementDataProvider->jumpDuration;
+  float obstacleDuration = self->_obstacleData->duration;
+
+  float jumpTime = (time - moveDuration) / (jumpDuration + self->_obstacleDuration);
   jumpTime = std::clamp(jumpTime, 0.0f, 1.0f);
+
+  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
   std::optional<NEVector::Vector3> position =
-      AnimationHelper::GetDefinitePositionOffset(ad.animationData, tracks, jumpTime);
+      AnimationHelper::GetDefinitePositionOffset(ad.animationData, tracks, jumpTime, context->GetBaseProviderContext());
 
   if (!position.has_value()) return ObstacleController_GetPosForTime(self, time);
 
   NEVector::Vector3 const& noteOffset = ad.noteOffset;
   NEVector::Vector3 definitePosition = *position + noteOffset;
-  if (time < self->move1Duration) {
+  if (time < moveDuration) {
     NEVector::Vector3 result =
-        NEVector::Vector3::LerpUnclamped(self->_startPos, self->_midPos, time / self->move1Duration);
+        NEVector::Vector3::LerpUnclamped(self->_startPos, self->_midPos, time / moveDuration);
     return result + (definitePosition - static_cast<NEVector::Vector3>(self->_midPos));
   } else {
     return definitePosition;

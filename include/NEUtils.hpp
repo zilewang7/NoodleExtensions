@@ -47,7 +47,7 @@ inline std::optional<float> getTimeProp(std::span<TrackW const> tracks) {
 
   if (tracks.size() > 1) {
     auto trackIt = std::find_if(tracks.begin(), tracks.end(),
-                                [](Track const* track) { return track->properties.time.value.has_value(); });
+                                [](TrackW track) { return track.GetPropertyNamed(PropertyNames::Time).GetFloat(); });
 
     if (trackIt != tracks.end()) {
       timeTrack = *trackIt;
@@ -57,10 +57,8 @@ inline std::optional<float> getTimeProp(std::span<TrackW const> tracks) {
   }
 
   if (!timeTrack) return std::nullopt;
-  Property const& timeProperty = timeTrack->properties.time;
-  if (!timeProperty.value) return std::nullopt;
-
-  float time = timeProperty.value->linear;
-  return time;
+  PropertyW const& timeProperty = timeTrack.GetPropertyNamed(PropertyNames::Time);
+  
+  return timeProperty.GetFloat();
 }
 } // namespace NoodleExtensions

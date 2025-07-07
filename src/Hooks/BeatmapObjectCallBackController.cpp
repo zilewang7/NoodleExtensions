@@ -9,6 +9,7 @@
 #include "GlobalNamespace/SortedList_1.hpp"
 #include "GlobalNamespace/SortedList_2.hpp"
 #include "GlobalNamespace/BeatmapCallbacksUpdater.hpp"
+#include "GlobalNamespace/VariableMovementDataProvider.hpp"
 #include "System/Collections/Generic/HashSet_1.hpp"
 #include "System/Collections/Generic/Dictionary_2.hpp"
 #include "System/Action.hpp"
@@ -34,8 +35,8 @@ static GlobalNamespace::BeatmapObjectSpawnMovementData* movementData;
 inline float GetSpawnAheadTime(BeatmapObjectSpawnController::InitData* initData,
                                BeatmapObjectSpawnMovementData* movementData, std::optional<float> inputNjs,
                                std::optional<float> inputOffset) {
-  return movementData->moveDuration +
-         (SpawnDataHelper::GetJumpDuration(initData, movementData, inputNjs, inputOffset) * 0.5f);
+  return 0.5f +
+         (SpawnDataHelper::GetJumpDuration(inputNjs, inputOffset) * 0.5f);
 }
 
 inline float ObjectSortGetTime(BeatmapDataItem* n) {
@@ -75,9 +76,7 @@ System::Collections::Generic::LinkedList_1<BeatmapDataItem*>*
 SortAndOrderList(CustomJSONData::CustomBeatmapData* beatmapData) {
   initData = NECaches::GameplayCoreContainer->Resolve<BeatmapObjectSpawnController::InitData*>();
   movementData = GlobalNamespace::BeatmapObjectSpawnMovementData::New_ctor();
-  movementData->Init(initData->noteLinesCount, initData->noteJumpMovementSpeed, initData->beatsPerMinute,
-                     initData->noteJumpValueType, initData->noteJumpValue, nullptr, NEVector::Vector3::right(),
-                     NEVector::Vector3::forward());
+  movementData->Init(initData->noteLinesCount, NECaches::JumpOffsetYProvider.ptr(), NEVector::Vector3::right());
 
   auto items = beatmapData->GetAllBeatmapItemsCpp();
 

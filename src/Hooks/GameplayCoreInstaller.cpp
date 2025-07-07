@@ -26,20 +26,9 @@ MAKE_HOOK_MATCH(InstallBindings, &GameplayCoreInstaller::InstallBindings, void, 
   auto* difficultyBeatmap = self->_sceneSetupData->beatmapBasicData;
   GameplayModifiers* gameplayModifiers = self->_sceneSetupData->gameplayModifiers;
 
-
-
-      BeatmapObjectSpawnControllerHelpers::GetNoteJumpValues(
-          self->_sceneSetupData->playerSpecificSettings, difficultyBeatmap->noteJumpStartBeatOffset,
-          ByRef(NECaches::noteJumpValueType), ByRef(NECaches::noteJumpValue));
-
-  float njs = difficultyBeatmap->noteJumpMovementSpeed;
-  if (njs <= 0) {
-    njs = BeatmapDifficultyMethods::NoteJumpMovementSpeed(self->_sceneSetupData->beatmapKey.difficulty);
-  }
-  if (gameplayModifiers->fastNotes) {
-    njs = 20;
-  }
-  NECaches::noteJumpMovementSpeed = njs;
+  BeatmapObjectSpawnControllerHelpers::GetNoteJumpValues(
+      self->_sceneSetupData->playerSpecificSettings, difficultyBeatmap->noteJumpStartBeatOffset,
+      ByRef(NECaches::noteJumpValueType), ByRef(NECaches::noteJumpValue));
 
   NECaches::noteJumpStartBeatOffset = difficultyBeatmap->noteJumpStartBeatOffset +
                                       self->_sceneSetupData->playerSpecificSettings->noteJumpStartBeatOffset;
@@ -48,7 +37,11 @@ MAKE_HOOK_MATCH(InstallBindings, &GameplayCoreInstaller::InstallBindings, void, 
 
   InstallBindings(self);
 
-  NECaches::GameplayCoreContainer = self->get_Container();
+  NECaches::GameplayCoreContainer = self->Container;
+
+  NECaches::JumpOffsetYProvider = self->Container->Resolve<GlobalNamespace::IJumpOffsetYProvider*>();
+  NECaches::VariableMovementDataProvider = self->Container->Resolve<GlobalNamespace::VariableMovementDataProvider*>();
+  NECaches::InitData = self->Container->Resolve<GlobalNamespace::BeatmapObjectSpawnController::InitData*>();
 }
 
 void InstallGameplayCoreInstallerHooks() {

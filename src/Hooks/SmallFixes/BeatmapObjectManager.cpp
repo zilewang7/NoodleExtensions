@@ -29,11 +29,9 @@ static bool GetHiddenForType(BeatmapObjectManager* beatmapObjectManager) {
 }
 
 MAKE_HOOK_MATCH(BeatmapObjectManager_SpawnObstacle, &BeatmapObjectManager::AddSpawnedObstacleController, void,
-                BeatmapObjectManager* self, GlobalNamespace::ObstacleController* obstacleController,
-                ::GlobalNamespace::BeatmapObjectSpawnMovementData::ObstacleSpawnData obstacleSpawnData,
-                float rotation) {
+                BeatmapObjectManager* self, GlobalNamespace::ObstacleController* obstacleController, ObstacleSpawnData obstacleSpawnData) {
   if (!Hooks::isNoodleHookEnabled())
-    return BeatmapObjectManager_SpawnObstacle(self, obstacleController, obstacleSpawnData, rotation);
+    return BeatmapObjectManager_SpawnObstacle(self, obstacleController, obstacleSpawnData);
 
   if (obstacleController == nullptr) {
     return;
@@ -45,7 +43,7 @@ MAKE_HOOK_MATCH(BeatmapObjectManager_SpawnObstacle, &BeatmapObjectManager::AddSp
   }
   auto action2 = self->obstacleWasAddedEvent;
   if (action2 != nullptr) {
-    action2->Invoke(obstacleController->obstacleData, obstacleSpawnData, rotation);
+    action2->Invoke(obstacleController->obstacleData, obstacleSpawnData);
   }
   obstacleController->ManualUpdate();
   // TRANSPILE HERE
