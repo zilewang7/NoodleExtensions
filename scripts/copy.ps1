@@ -1,10 +1,24 @@
-$buildScript = "$env:ANDROID_NDK_HOME/build/ndk-build"
-if (-not ($PSVersionTable.PSEdition -eq "Core")) {
-    $buildScript += ".cmd"
-}
+param(
+    [Parameter(ValueFromRemainingArguments=$true)]
+    [string[]]$args,
+    [switch]$log = $false,
+    [switch]$release = $false
+)
 
-& $buildScript NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
-& adb push libs/arm64-v8a/libnoodleextensions.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libnoodleextensions.so
-& adb shell am force-stop com.beatgames.beatsaber
-& adb shell am start com.beatgames.beatsaber/com.unity3d.player.UnityPlayerActivity
-adb logcat -c; adb logcat > test.log
+if ($release) {
+    & $PSScriptRoot/build.ps1 -release
+} else {
+    & $PSScriptRoot/build.ps1
+}
+if ($?) {
+    adb push build/libchroma.so /sdcard/ModData/com.beatgames.beatsaber/Modloader/mods/libchroma.so
+    if ($?) {
+        adb shell am force-stop com.beatgames.beatsaber
+        adb shell am start com.beatgames.beatsaber/com.unity3d.player.UnityPlayerActivity
+        if ($log.IsPresent) {
+            $timestamp = Get-Date -Format "MM-dd HH:mm:ss.fff"
+            adb logcat -c
+            adb logcat > log.txt
+        }
+    }
+}
