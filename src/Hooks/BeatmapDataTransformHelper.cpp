@@ -175,7 +175,7 @@ void LoadNoodleEvent(TracksAD::BeatmapAssociatedData& beatmapAD, CustomJSONData:
                                                  : NoodleExtensions::Constants::TARGET.data())
             .value_or("Root"));
     TrackW track = beatmapAD.getTrack(trackName);
-    NELogger::Logger.debug("Assigning player to track {} at {}, with target {}", trackName.data(), fmt::ptr(track),
+    NELogger::Logger.debug("Assigning player to track {} at {}, with target {}", trackName.data(), track.GetName(),
                            trackTarget.data());
     eventAD.playerTrackEventData.emplace(track, trackTarget);
 

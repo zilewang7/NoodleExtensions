@@ -19,8 +19,7 @@ struct ObjectOffset {
 };
 
 std::optional<NEVector::Vector3> GetDefinitePositionOffset(AnimationObjectData const& animationData,
-                                                           std::span<TrackW const> tracks, float time, Tracks::ffi::BaseProviderContext* context);
-ObjectOffset GetObjectOffset(AnimationObjectData const& customData, std::span<TrackW const> tracks, float time,
-                             Tracks::ffi::BaseProviderContext* context);
+                                                           std::span<TrackW const> tracks, float time);
+ObjectOffset GetObjectOffset(AnimationObjectData const& customData, std::span<TrackW const> tracks, float time);
 
 } // end namespace AnimationHelper

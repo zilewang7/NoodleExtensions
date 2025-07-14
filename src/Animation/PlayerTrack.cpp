@@ -175,7 +175,7 @@ void PlayerTrack::OnDestroy() {
     // pauseController->remove_didPauseEvent(didPauseEventAction);
   }
   trackController = nullptr;
-  track = TrackW(nullptr, false);
+  track = TrackW();
   PlayerTrack::playerTracks[this->trackObject] = nullptr;
 }
 

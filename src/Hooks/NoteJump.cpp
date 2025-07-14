@@ -79,30 +79,40 @@ void NoteJump_ManualUpdateNoteLookTranspile(NoteJump* self, Transform* selfTrans
 
 MAKE_HOOK_MATCH(NoteJump_ManualUpdate, &NoteJump::ManualUpdate, Vector3, NoteJump* self) {
   if (!Hooks::isNoodleHookEnabled()) return NoteJump_ManualUpdate(self);
+
+  if (!self->_missedMarkReported) {
+    self->_halfJumpDuration = self->_variableMovementDataProvider->halfJumpDuration;
+    self->_jumpDuration = self->_variableMovementDataProvider->jumpDuration;
+    self->_gravity = self->_variableMovementDataProvider->CalculateCurrentNoteJumpGravity(self->_gravityBase);
+    self->_startPos = Sombrero::FastVector3(self->_variableMovementDataProvider->moveEndPosition) +
+                      Sombrero::FastVector3(self->_startOffset);
+    self->_endPos = Sombrero::FastVector3(self->_variableMovementDataProvider->jumpEndPosition) +
+                    Sombrero::FastVector3(self->_endOffset);
+    self->_missedTime = self->_noteTime + 0.15f;
+  }
   auto selfTransform = self->get_transform();
   float songTime = TimeSourceHelper::getSongTime(self->_audioTimeSyncController);
-  float elapsedTime = songTime - (self->_beatTime - self->jumpDuration * 0.5f);
+  float elapsedTime = songTime - (self->_noteTime - self->_halfJumpDuration);
   // transpile here
   if (noteUpdateAD) {
-    elapsedTime = noteTimeAdjust(elapsedTime, self->jumpDuration);
+    elapsedTime = noteTimeAdjust(elapsedTime, self->_jumpDuration);
   }
   //
-  float normalTime = elapsedTime / self->jumpDuration;
-
+  float normalTime = elapsedTime / self->_jumpDuration;
   if (self->_startPos.x == self->_endPos.x) {
     self->_localPosition.x = self->_startPos.x;
-  } else if (normalTime < 0.25) {
-    self->_localPosition.x = self->_startPos.x + (self->_endPos.x - self->_startPos.x) * InOutQuad(normalTime * 4);
+  } else if (normalTime < 0.25f) {
+    self->_localPosition.x =
+        self->_startPos.x + (self->_endPos.x - self->_startPos.x) * InOutQuad(normalTime * 4.f);
   } else {
     self->_localPosition.x = self->_endPos.x;
   }
-  self->_localPosition.z =
-      self->_playerTransforms->MoveTowardsHead(self->_startPos.z, self->_endPos.z, self->_inverseWorldRotation, normalTime);
-  self->_localPosition.y =
-      self->_startPos.y + self->_startVerticalVelocity * elapsedTime - self->_gravity * elapsedTime * elapsedTime * 0.5;
-  if (self->_yAvoidance != 0 && normalTime < 0.25) {
-    float num3 = 0.5 - std::cos(normalTime * 8 * M_PI) * 0.5;
-    self->_localPosition.y = self->localPosition.y + num3 * self->_yAvoidance;
+  self->_localPosition.z = std::lerp(self->_startPos.z, self->_endPos.z, normalTime);
+  float num3 = self->_gravity * self->_halfJumpDuration;
+  self->_localPosition.y = self->_startPos.y + num3 * elapsedTime - self->_gravity * elapsedTime * elapsedTime * 0.5f;
+  if (self->_yAvoidance != 0.f && normalTime < 0.25f) {
+    float num4 = 0.5f - std::cos(normalTime * 8.f * 3.1415927f) * 0.5f;
+    self->_localPosition.y = self->_localPosition.y + num4 * self->_yAvoidance;
   }
 
   // transpile here
@@ -122,51 +132,63 @@ MAKE_HOOK_MATCH(NoteJump_ManualUpdate, &NoteJump::ManualUpdate, Vector3, NoteJum
   if (normalTime < 0.5) {
     NoteJump_ManualUpdateNoteLookTranspile(self, selfTransform, normalTime);
   }
-  if (normalTime >= 0.5 && !self->_halfJumpMarkReported) {
-    self->_halfJumpMarkReported = true;
-    if (self->noteJumpDidPassHalfEvent) self->noteJumpDidPassHalfEvent->Invoke();
-  }
-  if (normalTime >= 0.75 && !self->_threeQuartersMarkReported) {
-    self->_threeQuartersMarkReported = true;
-    if (self->noteJumpDidPassThreeQuartersEvent) self->noteJumpDidPassThreeQuartersEvent->Invoke(self);
-  }
-  if (NoteMissedTimeAdjust(self->_beatTime, self->jumpDuration, elapsedTime) >= self->_missedTime &&
-      !self->_missedMarkReported) {
-    self->_missedMarkReported = true;
-    if (self->noteJumpDidPassMissedMarkerEvent) self->noteJumpDidPassMissedMarkerEvent->Invoke();
+
+  if (!self->_jumpStartedReported) {
+    self->_jumpStartedReported = true;
+    auto action = self->noteJumpDidStartEvent;
+    if (action != nullptr) {
+      action->Invoke();
+    }
   }
 
+  if (normalTime >= 0.5f && !self->_halfJumpMarkReported) {
+    self->_halfJumpMarkReported = true;
+    auto action2 = self->noteJumpDidPassHalfEvent;
+    if (action2 != nullptr) {
+      action2->Invoke();
+    }
+  }
+  if (normalTime >= 0.75f && !self->_threeQuartersMarkReported) {
+    self->_threeQuartersMarkReported = true;
+    auto action3 = self->noteJumpDidPassThreeQuartersEvent;
+    if (action3 != nullptr) {
+      action3->Invoke(self);
+    }
+  }
+  if (songTime >= self->_missedTime && !self->_missedMarkReported) {
+    self->_missedMarkReported = true;
+    auto action4 = self->noteJumpDidPassMissedMarkerEvent;
+    if (action4 != nullptr) {
+      action4->Invoke();
+    }
+  }
   // transpile here
   if (self->_threeQuartersMarkReported && !definitePosition) {
     //
-    float num4 = (normalTime - 0.75f) / 0.25f;
-    num4 = num4 * num4 * num4;
-    self->_localPosition.z = self->localPosition.z - std::lerp(0, self->_endDistanceOffset, num4);
-  }
-  if (normalTime >= 1) {
-    if (self->noteJumpDidFinishEvent) self->noteJumpDidFinishEvent->Invoke();
+    float num5 = (normalTime - 0.75f) / 0.25f;
+    num5 = num5 * num5 * num5;
+    self->_localPosition.z = self->_localPosition.z - std::lerp(0.0f, self->_endDistanceOffset, num5);
   }
   if (normalTime >= 1.0f) {
     if (!self->_missedMarkReported) {
       self->_missedMarkReported = true;
-      auto action4 = self->noteJumpDidPassMissedMarkerEvent;
-      if (action4 != nullptr) {
-        action4->Invoke();
+      auto action5 = self->noteJumpDidPassMissedMarkerEvent;
+      if (action5 != nullptr) {
+        action5->Invoke();
       }
     }
-    auto action5 = self->noteJumpDidFinishEvent;
-    if (action5 != nullptr) {
-      action5->Invoke();
+    auto action6 = self->noteJumpDidFinishEvent;
+    if (action6 != nullptr) {
+      action6->Invoke();
     }
   }
-
-  NEVector::Vector3 result = NEVector::Quaternion(self->_worldRotation) * NEVector::Vector3(self->localPosition);
-  selfTransform->set_localPosition(result);
-  if (self->noteJumpDidUpdateProgressEvent) {
-    self->noteJumpDidUpdateProgressEvent->Invoke(normalTime);
+  auto vector2 = Sombrero::FastQuaternion(self->_worldRotation) * Sombrero::FastVector3(self->_localPosition);
+  self->transform->localPosition = vector2;
+  auto action7 = self->noteJumpDidUpdateProgressEvent;
+  if (action7 != nullptr) {
+    action7->Invoke(normalTime);
   }
-
-  return result;
+  return vector2;
 }
 
 void InstallNoteJumpHooks() {

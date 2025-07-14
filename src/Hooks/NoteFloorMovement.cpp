@@ -22,9 +22,9 @@ static NEVector::Vector3 DefinitePositionTranspile(NEVector::Vector3 original, N
     return original;
   }
 
-  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
   std::optional<NEVector::Vector3> position =
-      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, 0, context->GetBaseProviderContext());
+      AnimationHelper::GetDefinitePositionOffset(noteUpdateAD->animationData, noteTracks, 0);
   if (!position.has_value()) {
     return original;
   }

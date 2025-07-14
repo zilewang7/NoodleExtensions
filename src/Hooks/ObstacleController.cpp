@@ -303,8 +303,8 @@ MAKE_HOOK_MATCH(ObstacleController_ManualUpdate, &ObstacleController::ManualUpda
     normalTime = obstacleOriginalTime;
   }
 
-  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
-  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime, context->GetBaseProviderContext());
+  // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime);
 
   if (offset.positionOffset.has_value()) {
     NEVector::Vector3 moveOffset = ad.moveStartPos;
@@ -451,9 +451,9 @@ MAKE_HOOK_MATCH(ObstacleController_GetPosForTime, &ObstacleController::GetPosFor
   float jumpTime = (time - moveDuration) / (jumpDuration + self->_obstacleDuration);
   jumpTime = std::clamp(jumpTime, 0.0f, 1.0f);
 
-  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
   std::optional<NEVector::Vector3> position =
-      AnimationHelper::GetDefinitePositionOffset(ad.animationData, tracks, jumpTime, context->GetBaseProviderContext());
+      AnimationHelper::GetDefinitePositionOffset(ad.animationData, tracks, jumpTime);
 
   if (!position.has_value()) return ObstacleController_GetPosForTime(self, time);
 

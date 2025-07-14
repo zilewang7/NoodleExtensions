@@ -259,8 +259,8 @@ MAKE_HOOK_MATCH(NoteController_ManualUpdate, &NoteController::ManualUpdate, void
     normalTime = elapsedTime / jumpDuration;
   }
 
-  auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
-  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime, context->GetBaseProviderContext());
+  // auto context = TracksAD::getBeatmapAD(NECaches::customBeatmapData->customData).internal_tracks_context;
+  AnimationHelper::ObjectOffset offset = AnimationHelper::GetObjectOffset(ad.animationData, tracks, normalTime);
 
   if (offset.positionOffset.has_value()) {
     auto const& offsetPos = *offset.positionOffset;

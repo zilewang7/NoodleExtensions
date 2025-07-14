@@ -43,7 +43,8 @@ MAKE_HOOK_MATCH(BeatmapObjectManager_SpawnObstacle, &BeatmapObjectManager::AddSp
   }
   auto action2 = self->obstacleWasAddedEvent;
   if (action2 != nullptr) {
-    action2->Invoke(obstacleController->obstacleData, obstacleSpawnData);
+    action2->Invoke(obstacleController->obstacleData, obstacleSpawnData,
+                    (float)obstacleController->obstacleData->rotation);
   }
   obstacleController->ManualUpdate();
   // TRANSPILE HERE
