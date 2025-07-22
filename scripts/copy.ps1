@@ -11,11 +11,6 @@ param(
     [Switch]$release
 )
 
-if ($release) {
-    & $PSScriptRoot/build.ps1 -release
-} else {
-    & $PSScriptRoot/build.ps1
-}
 if ($?) {
     adb push build/libnoodleextensions.so /sdcard/ModData/com.beatgames.beatsaber/Modloader/mods/libnoodleextensions.so
     if ($?) {
