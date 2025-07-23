@@ -164,17 +164,17 @@
     {
       "dependency": {
         "id": "tracks",
-        "versionRange": "=2.4.3",
+        "versionRange": "=2.4.4",
         "additionalData": {
-          "soLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.3/libtracks.so",
-          "debugSoLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.3/debug_libtracks.so",
+          "soLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.4/libtracks.so",
+          "debugSoLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.4/debug_libtracks.so",
           "overrideSoName": "libtracks.so",
-          "modLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.3/Tracks.qmod",
-          "branchName": "version/v2_4_3",
+          "modLink": "https://github.com/bsq-ports/Tracks/releases/download/v2.4.4/Tracks.qmod",
+          "branchName": "version/v2_4_4",
           "cmake": true
         }
       },
-      "version": "2.4.3"
+      "version": "2.4.4"
     },
     {
       "dependency": {

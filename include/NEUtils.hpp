@@ -41,7 +41,7 @@ template <typename ToCast, typename List> inline auto of_type(List list) {
 }
 
 inline std::optional<float> getTimeProp(std::span<TrackW const> tracks) {
-  if (tracks.empty()) return {};
+  if (tracks.empty()) return std::nullopt;
 
   TrackW timeTrack;
 
@@ -58,6 +58,7 @@ inline std::optional<float> getTimeProp(std::span<TrackW const> tracks) {
 
   if (!timeTrack) return std::nullopt;
   PropertyW const& timeProperty = timeTrack.GetPropertyNamed(PropertyNames::Time);
+  if (!timeProperty) return std::nullopt;
   
   return timeProperty.GetFloat();
 }
