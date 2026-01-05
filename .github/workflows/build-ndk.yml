@@ -23,13 +23,17 @@ jobs:
           submodules: true
           lfs: true
 
+      - name: Clear QPM cache
+        run: |
+          rm -f qpm.shared.json
+
       - name: Get QPM
         uses: Fernthedev/qpm-action@v1
         with:
           resolve_ndk: true
           workflow_token: ${{secrets.GITHUB_TOKEN}}
           restore: true # will run restore on download
-          cache: true #will cache dependencies
+          cache: false #disable cache to force fresh resolve
           qpm_qmod: ${{env.qmodName}}.qmod
 
       - name: Build
